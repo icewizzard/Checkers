@@ -9,7 +9,8 @@ public class Piece {
     protected Color color;
     protected boolean isSelected = false;
     protected boolean isKing = false;
-    protected boolean isCaptured = false; // New property to track if the piece is captured
+    protected boolean isCaptured = false; // Track if the piece is captured
+    private Point opponentPiecePosition; // Store the position of the opponent's piece for later capture
 
     private static final int GRID_SIZE = 75; // Size of each square on the board
 
@@ -52,6 +53,14 @@ public class Piece {
 
     public void setCaptured(boolean isCaptured) {
         this.isCaptured = isCaptured;
+    }
+
+    public Point getOpponentPiecePosition() {
+        return opponentPiecePosition;
+    }
+
+    public void setOpponentPiecePosition(Point opponentPiecePosition) {
+        this.opponentPiecePosition = opponentPiecePosition;
     }
 
     public void draw(Graphics g, int diameter) {

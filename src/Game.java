@@ -3,6 +3,7 @@ import java.util.Random;
 
 public class Game {
     private Color currentTurn;
+    
 
     public Game() {
         // Randomly select the starting color

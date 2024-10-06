@@ -15,6 +15,7 @@ public class Board extends JPanel {
     private static final int DIAMETER = 30;
     private static final int GRID_SIZE = 75; // Size of each square on the board
     private static final int BOARD_SIZE = 600; // Board width and height
+   
 
     private Piece[] whitePieces;
     private Piece[] blackPieces;
@@ -22,6 +23,7 @@ public class Board extends JPanel {
     private List<Point> possibleMoves = new ArrayList<>(); // Track possible moves
 
     private Game game; // Declare the Game object
+    private boolean gameOver = false; // Add a flag to track game state
 
     public Board() {
         setLayout(null);
@@ -31,16 +33,30 @@ public class Board extends JPanel {
             @Override
             public void mousePressed(MouseEvent e) {
                 if (selectedPiece == null) {
-                    // Deselect all pieces
                     deselectAllPieces();
-
-                    // Check if a piece is clicked
                     Piece clickedPiece = getPieceAt(e.getPoint());
-                    if (clickedPiece != null && clickedPiece.getColor() == game.getCurrentTurnColor()) {
-                        selectedPiece = clickedPiece;
-                        showPossibleMoves(selectedPiece);
+                    if (clickedPiece != null) {
+                        System.out.println("Piece selected: " + clickedPiece.getClass().getSimpleName());
+
+                        if (clickedPiece.getColor() == game.getCurrentTurnColor()) {
+                            selectedPiece = clickedPiece;
+                        
+                            Piece[][] boardArray = createBoardArray();
+                            if (noValidMovesLeft(selectedPiece, boardArray)) {
+                                JOptionPane.showMessageDialog(Board.this, "No valid moves left for this piece.", "No Moves", JOptionPane.INFORMATION_MESSAGE);
+                                selectedPiece = null;
+                                return;
+                            }
+
+                            showPossibleMoves(selectedPiece);
+                        } else {
+                            System.out.println("Not the current player's turn.");
+                        }
+                    } else {
+                        System.out.println("No piece selected.");
                     }
                 } else {
+                    // Use isClickOnPossibleMove to check if the move is valid
                     if (isClickOnPossibleMove(e.getPoint())) {
                         movePiece(e.getPoint());
                     } else {
@@ -49,10 +65,85 @@ public class Board extends JPanel {
                         possibleMoves.clear();
                     }
                 }
-                repaint(); // Repaint the board to show the changes
             }
+
+
         });
     }
+
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        drawBoard(g);
+        Graphics2D g2d = (Graphics2D) g;
+
+        // Draw all white and black pieces in their current positions
+        drawPieces(g2d, whitePieces);
+        drawPieces(g2d, blackPieces);
+
+        // Draw possible move highlights
+        g.setColor(Color.RED);
+        for (Point move : possibleMoves) {
+            g.drawOval(move.x - DIAMETER / 2, move.y - DIAMETER / 2, DIAMETER, DIAMETER);
+        }
+    }
+
+    private void drawBoard(Graphics g) {
+        Color darkGray = new Color(50, 50, 50); // Dark gray color for the board
+        for (int i = 0; i < BOARD_SIZE / GRID_SIZE; i++) {
+            for (int m = 0; m < BOARD_SIZE / GRID_SIZE; m++) {
+                g.setColor((i + m) % 2 != 0 ? darkGray : Color.WHITE);
+                g.fillRect(i * GRID_SIZE, m * GRID_SIZE, GRID_SIZE, GRID_SIZE);
+            }
+        }
+    }
+
+    private void drawPieces(Graphics2D g2d, Piece[] pieces) {
+        for (Piece piece : pieces) {
+            if (piece != null && !piece.isCaptured()) {
+                piece.draw(g2d, DIAMETER);
+            }
+        }
+    }
+
+    
+// Initialize white and black pieces
+private void initializePieces() {
+    int offset = GRID_SIZE / 2;
+
+    // Initialize white pieces
+    whitePieces = new Piece[]{
+            // new WhitePiece(1 * GRID_SIZE + offset, 0 * GRID_SIZE + offset),
+            // new WhitePiece(3 * GRID_SIZE + offset, 0 * GRID_SIZE + offset),
+            // new WhitePiece(5 * GRID_SIZE + offset, 0 * GRID_SIZE + offset),
+            // new WhitePiece(7 * GRID_SIZE + offset, 0 * GRID_SIZE + offset),
+            // new WhitePiece(0 * GRID_SIZE + offset, 1 * GRID_SIZE + offset),
+            // new WhitePiece(2 * GRID_SIZE + offset, 1 * GRID_SIZE + offset),
+            // new WhitePiece(4 * GRID_SIZE + offset, 1 * GRID_SIZE + offset),
+            // new WhitePiece(6 * GRID_SIZE + offset, 1 * GRID_SIZE + offset),
+            new WhitePiece(1 * GRID_SIZE + offset, 2 * GRID_SIZE + offset),
+            new WhitePiece(3 * GRID_SIZE + offset, 2 * GRID_SIZE + offset),
+            // new WhitePiece(5 * GRID_SIZE + offset, 2 * GRID_SIZE + offset),
+            // new WhitePiece(7 * GRID_SIZE + offset, 2 * GRID_SIZE + offset)
+    };
+
+    // Initialize black pieces
+    blackPieces = new Piece[]{
+            new BlackPiece(0 * GRID_SIZE + offset, 5 * GRID_SIZE + offset),
+            // new BlackPiece(2 * GRID_SIZE + offset, 5 * GRID_SIZE + offset),
+            // new BlackPiece(4 * GRID_SIZE + offset, 5 * GRID_SIZE + offset),
+            // new BlackPiece(6 * GRID_SIZE + offset, 5 * GRID_SIZE + offset),
+            // new BlackPiece(1 * GRID_SIZE + offset, 6 * GRID_SIZE + offset),
+            // new BlackPiece(3 * GRID_SIZE + offset, 6 * GRID_SIZE + offset),
+            // new BlackPiece(5 * GRID_SIZE + offset, 6 * GRID_SIZE + offset),
+            // new BlackPiece(7 * GRID_SIZE + offset, 6 * GRID_SIZE + offset),
+            // new BlackPiece(0 * GRID_SIZE + offset, 7 * GRID_SIZE + offset),
+            // new BlackPiece(2 * GRID_SIZE + offset, 7 * GRID_SIZE + offset),
+            // new BlackPiece(4 * GRID_SIZE + offset, 7 * GRID_SIZE + offset),
+            // new BlackPiece(6 * GRID_SIZE + offset, 7 * GRID_SIZE + offset)
+    };
+}
+
 
     private Piece getPieceAt(Point point) {
         int x = point.x / GRID_SIZE;
@@ -65,97 +156,19 @@ public class Board extends JPanel {
         return null;
     }
 
-    private void initializePieces() {
-        int offset = GRID_SIZE / 2;
-
-        // Initialize white pieces
-        whitePieces = new Piece[]{
-                new WhitePiece(1 * GRID_SIZE + offset, 0 * GRID_SIZE + offset),
-                // new WhitePiece(3 * GRID_SIZE + offset, 0 * GRID_SIZE + offset),
-                // new WhitePiece(5 * GRID_SIZE + offset, 0 * GRID_SIZE + offset),
-                // new WhitePiece(7 * GRID_SIZE + offset, 0 * GRID_SIZE + offset),
-                // new WhitePiece(0 * GRID_SIZE + offset, 1 * GRID_SIZE + offset),
-                // new WhitePiece(2 * GRID_SIZE + offset, 1 * GRID_SIZE + offset),
-                // new WhitePiece(4 * GRID_SIZE + offset, 1 * GRID_SIZE + offset),
-                // new WhitePiece(6 * GRID_SIZE + offset, 1 * GRID_SIZE + offset),
-                // new WhitePiece(1 * GRID_SIZE + offset, 2 * GRID_SIZE + offset),
-                // new WhitePiece(3 * GRID_SIZE + offset, 2 * GRID_SIZE + offset),
-                // new WhitePiece(5 * GRID_SIZE + offset, 2 * GRID_SIZE + offset),
-                // new WhitePiece(7 * GRID_SIZE + offset, 2 * GRID_SIZE + offset)
-        };
-
-        // Initialize black pieces
-        blackPieces = new Piece[]{
-                new BlackPiece(0 * GRID_SIZE + offset, 5 * GRID_SIZE + offset),
-                // new BlackPiece(2 * GRID_SIZE + offset, 5 * GRID_SIZE + offset),
-                // new BlackPiece(4 * GRID_SIZE + offset, 5 * GRID_SIZE + offset),
-                // new BlackPiece(6 * GRID_SIZE + offset, 5 * GRID_SIZE + offset),
-                // new BlackPiece(1 * GRID_SIZE + offset, 6 * GRID_SIZE + offset),
-                // new BlackPiece(3 * GRID_SIZE + offset, 6 * GRID_SIZE + offset),
-                // new BlackPiece(5 * GRID_SIZE + offset, 6 * GRID_SIZE + offset),
-                // new BlackPiece(7 * GRID_SIZE + offset, 6 * GRID_SIZE + offset),
-                // new BlackPiece(0 * GRID_SIZE + offset, 7 * GRID_SIZE + offset),
-                // new BlackPiece(2 * GRID_SIZE + offset, 7 * GRID_SIZE + offset),
-                // new BlackPiece(4 * GRID_SIZE + offset, 7 * GRID_SIZE + offset),
-                // new BlackPiece(6 * GRID_SIZE + offset, 7 * GRID_SIZE + offset)
-        };
-    }
-
     private Piece[][] createBoardArray() {
         Piece[][] board = new Piece[8][8];
-
-        for (Piece piece : whitePieces) {
-            if (piece != null) {
-                int x = piece.getPosition().x / GRID_SIZE;
-                int y = piece.getPosition().y / GRID_SIZE;
-                board[y][x] = piece;
-            }
-        }
-        for (Piece piece : blackPieces) {
-            if (piece != null) {
-                int x = piece.getPosition().x / GRID_SIZE;
-                int y = piece.getPosition().y / GRID_SIZE;
-                board[y][x] = piece;
-            }
-        }
-
+        populateBoardArray(board, whitePieces);
+        populateBoardArray(board, blackPieces);
         return board;
     }
 
-    @Override
-    protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
-        drawBoard(g);
-        Graphics2D g2d = (Graphics2D) g;
-
-        // Draw all white pieces in their current positions
-        for (Piece piece : whitePieces) {
-            if (piece != null && !piece.isCaptured()) { // Ensure the piece is not captured
-                piece.draw(g2d, DIAMETER);
-            }
-        }
-
-        // Draw all black pieces in their current positions
-        for (Piece piece : blackPieces) {
-            if (piece != null && !piece.isCaptured()) { // Ensure the piece is not captured
-                piece.draw(g2d, DIAMETER);
-            }
-        }
-
-        // Draw possible move highlights
-        g.setColor(Color.RED);
-        for (Point move : possibleMoves) {
-            g.drawOval(move.x - DIAMETER / 2, move.y - DIAMETER / 2, DIAMETER, DIAMETER);
-        }
-    }
-
-    private void drawBoard(Graphics g) {
-        Color darkGray = new Color(50, 50, 50); // Dark gray color for the board
-
-        for (int i = 0; i < BOARD_SIZE / GRID_SIZE; i++) {
-            for (int m = 0; m < BOARD_SIZE / GRID_SIZE; m++) {
-                g.setColor((i + m) % 2 != 0 ? darkGray : Color.WHITE);
-                g.fillRect(i * GRID_SIZE, m * GRID_SIZE, GRID_SIZE, GRID_SIZE);
+    private void populateBoardArray(Piece[][] board, Piece[] pieces) {
+        for (Piece piece : pieces) {
+            if (piece != null) {
+                int x = piece.getPosition().x / GRID_SIZE;
+                int y = piece.getPosition().y / GRID_SIZE;
+                board[y][x] = piece;
             }
         }
     }
@@ -171,18 +184,6 @@ public class Board extends JPanel {
                 piece.setSelected(false);
             }
         }
-    }
-
-    private void showPossibleMoves(Piece piece) {
-        Piece[][] boardArray = createBoardArray();
-        possibleMoves = getCaptureMoves(piece, boardArray);
-
-        // If no capture moves are available, show regular moves
-        if (possibleMoves.isEmpty()) {
-            possibleMoves = piece.getPossibleMoves(boardArray);
-        }
-
-        piece.setSelected(true);
     }
 
     private boolean isClickOnPossibleMove(Point point) {
@@ -201,37 +202,34 @@ public class Board extends JPanel {
             int gridY = point.y / GRID_SIZE;
             Point newPosition = new Point(gridX * GRID_SIZE + offset, gridY * GRID_SIZE + offset);
             Piece[][] boardArray = createBoardArray();
-    
-            // Check if the move clicked is one of the possible capture moves
+            
             if (possibleMoves.contains(newPosition) && canCapture(selectedPiece, boardArray, newPosition)) {
-                // Handle the capture
                 handleCapture(selectedPiece, newPosition, boardArray);
-                // If there are more captures possible for the same piece after this one, allow further captures
-                List<Point> additionalCaptures = getCaptureMoves(selectedPiece, createBoardArray());
-                if (!additionalCaptures.isEmpty()) {
-                    showPossibleMoves(selectedPiece); // Show additional possible capture moves
-                    return; // Allow the player to continue capturing
-                }
-            }
     
-            // Check if the destination is empty or if it's a valid move (non-capture)
-            if (selectedPiece.isDestinationEmpty(boardArray, newPosition)) {
+                // Check for additional capture opportunities from the new position
+                possibleMoves = getCaptureMoves(selectedPiece, boardArray);
+                if (!possibleMoves.isEmpty()) {
+                    // Show dialog only once
+                    JOptionPane.showMessageDialog(Board.this, "You can perform another capture!", "Capture Opportunity", JOptionPane.INFORMATION_MESSAGE);
+                    
+                    // Let the player perform another capture; don't switch turn yet
+                    return;
+                }
+    
+                checkForWinner();
+                if (!gameOver) {
+                    game.switchTurn();
+                }
+            } else if (selectedPiece.isDestinationEmpty(boardArray, newPosition)) {
                 selectedPiece.setPosition(newPosition);
-    
-                // Promote piece to king if it reaches the opposite end
-                if (selectedPiece.getColor() == Color.WHITE && gridY == 7) {
-                    selectedPiece.makeKing();
-                } else if (selectedPiece.getColor() == Color.BLACK && gridY == 0) {
-                    selectedPiece.makeKing();
-                }
-                
-    
+                promotePieceIfNecessary(selectedPiece, gridY);
                 deselectAllPieces();
                 selectedPiece = null;
                 possibleMoves.clear();
-
                 checkForWinner();
-                game.switchTurn(); // Switch turn after a move
+                if (!gameOver) {
+                    game.switchTurn();
+                }
             } else {
                 throw new IllegalStateException("Invalid move: Destination is not empty or capture not possible!");
             }
@@ -241,264 +239,239 @@ public class Board extends JPanel {
             selectedPiece = null;
             possibleMoves.clear();
         }
-        repaint(); // Ensure repaint is called after every move
+        repaint();
     }
     
 
-    private boolean canCapture(Piece piece, Piece[][] boardArray, Point newPosition) {
-        if (newPosition == null) {
-            return false; // Invalid move if newPosition is null
+    private void promotePieceIfNecessary(Piece piece, int gridY) {
+        if (piece.getColor() == Color.WHITE && gridY == 7 || piece.getColor() == Color.BLACK && gridY == 0) {
+            piece.makeKing();
         }
-    
+    }
+
+    private boolean canCapture(Piece piece, Piece[][] boardArray, Point newPosition) {
+        return calculateCapturePosition(piece, newPosition, boardArray) != null;
+    }
+
+    private Point calculateCapturePosition(Piece piece, Point newPosition, Piece[][] boardArray) {
         int oldX = piece.getPosition().x / GRID_SIZE;
         int oldY = piece.getPosition().y / GRID_SIZE;
         int newX = newPosition.x / GRID_SIZE;
         int newY = newPosition.y / GRID_SIZE;
-    
+
         int deltaX = newX - oldX;
         int deltaY = newY - oldY;
-    
-        System.out.println("Checking capture: oldX=" + oldX + " oldY=" + oldY + " newX=" + newX + " newY=" + newY);
-    
-        // Check if the move is a capture move (two squares away diagonally)
+
         if (Math.abs(deltaX) == 2 && Math.abs(deltaY) == 2) {
             int captureX = oldX + deltaX / 2;
             int captureY = oldY + deltaY / 2;
-    
+
             Piece capturedPiece = boardArray[captureY][captureX];
-            
-            System.out.println("Piece at (" + captureX + ", " + captureY + ") is " + (capturedPiece == null ? "null" : capturedPiece.getColor()));
-    
-            // Check if the captured piece exists and is of the opposite color
-            return capturedPiece != null && capturedPiece.getColor() != piece.getColor();
-        }
-    
-        return false; // Not a capture move
-    }
-    
-
-    private List<Point> getCaptureMoves(Piece piece, Piece[][] boardArray) {
-        List<Point> captureMoves = new ArrayList<>();
-        int oldX = piece.getPosition().x / GRID_SIZE;
-        int oldY = piece.getPosition().y / GRID_SIZE;
-
-        // Define possible capture move directions (two squares diagonally)
-        int[] dx = {-2, 2, -2, 2};
-        int[] dy = {-2, -2, 2, 2};
-
-        for (int i = 0; i < dx.length; i++) {
-            int newX = oldX + dx[i];
-            int newY = oldY + dy[i];
-
-            // Ensure the new position is within bounds
-            if (newX >= 0 && newX < 8 && newY >= 0 && newY < 8) {
-                // Convert grid position back to pixel position
-                Point newPosition = new Point(newX * GRID_SIZE + GRID_SIZE / 2, newY * GRID_SIZE + GRID_SIZE / 2);
-
-                // Check if it's a valid capture move
-                if (canCapture(piece, boardArray, newPosition)) {
-                    int captureX = oldX + dx[i] / 2;
-                    int captureY = oldY + dy[i] / 2;
-                    Piece capturedPiece = boardArray[captureY][captureX];
-
-                    // Print captured piece property if it's a valid capture move
-                    if (capturedPiece != null) {
-                        System.out.println("Selected piece at (" + oldX + ", " + oldY + ") can capture piece at (" + captureX + ", " + captureY + ")");
-                        System.out.println("Captured piece isCaptured before move: " + capturedPiece.isCaptured());
-                    }
-
-                    // Check if the destination is empty
-                    if (piece.isDestinationEmpty(boardArray, newPosition)) {
-                        captureMoves.add(newPosition);
-                        System.out.println("Valid capture move: (" + newX + ", " + newY + ")");
-                    }
-                }
+            if (capturedPiece != null && capturedPiece.getColor() != piece.getColor()) {
+                return new Point(captureX, captureY);
             }
         }
-
-        // Print all capture moves for the selected piece
-        if (!captureMoves.isEmpty()) {
-            System.out.println("Capture moves available for the selected piece: " + captureMoves);
-
-        } else {
-            System.out.println("No capture moves available for the selected piece.");
-        }
-
-        return captureMoves;
+        return null;
     }
 
     private void handleCapture(Piece movedPiece, Point newPosition, Piece[][] boardArray) {
-        int oldX = movedPiece.getPosition().x / GRID_SIZE;
-        int oldY = movedPiece.getPosition().y / GRID_SIZE;
-        int newX = newPosition.x / GRID_SIZE;
-        int newY = newPosition.y / GRID_SIZE;
+        // Calculate the position of the captured piece
+        Point capturePosition = calculateCapturePosition(movedPiece, newPosition, boardArray);
     
-        int deltaX = newX - oldX;
-        int deltaY = newY - oldY;
+        if (capturePosition != null) {
+            // Capture the opponent's piece
+            Piece capturedPiece = boardArray[capturePosition.y][capturePosition.x];
+            capturedPiece.setCaptured(true);
+            removePieceFromBoard(capturedPiece);
     
-        // Check if the move was two squares diagonally, indicating a capture
-        if (Math.abs(deltaX) == 2 && Math.abs(deltaY) == 2) {
-            int captureX = oldX + deltaX / 2;
-            int captureY = oldY + deltaY / 2;
+            // Move the capturing piece to the new position
+            movedPiece.setPosition(newPosition);
     
-            Piece capturedPiece = boardArray[captureY][captureX];
+            // Check for further capture opportunities from the new position for both black and white pieces
+            possibleMoves = getCaptureMoves(movedPiece, createBoardArray());
     
-            // Ensure there's a captured piece of the opposite color
-            if (capturedPiece != null && capturedPiece.getColor() != movedPiece.getColor()) {
-    
-                // Simulate player decision (yes or no)
-                boolean playerWantsToCapture = getPlayerCaptureDecision(); // Placeholder for actual decision mechanism
-    
-                if (playerWantsToCapture) {
-                    // Player decided to perform the capture
-                    System.out.println("Player chose to capture!");
-    
-                    // Mark the captured piece as captured and remove it from the board
-                    capturedPiece.setCaptured(true);
-    
-                    // Remove the captured piece from the piece array and board array
-                    removePieceFromBoard(capturedPiece, captureX, captureY, boardArray);
-    
-                    // Force a full repaint after the piece is removed
-                    repaint();
-    
-                    // Log the remaining pieces
-                    System.out.println("Captured piece removed at: " + captureX + ", " + captureY);
-                } else {
-                    // Player decided not to perform the capture
-                    System.out.println("Player chose not to capture!");
-    
-                    // Remove the moved piece from the board
-                    movedPiece.setCaptured(true);
-                    removePieceFromBoard(movedPiece, newX, newY, boardArray);
-    
-                    // Force a full repaint after the piece is removed
-                    repaint();
-    
-                    System.out.println("Moved piece removed from board.");
-                }
-    
-                // Log the remaining pieces
-                System.out.println("Total white pieces: " + whitePieces.length);
-                System.out.println("Total black pieces: " + blackPieces.length);
+            if (!possibleMoves.isEmpty()) {
+                // Double capture is possible, let the player capture again
+                JOptionPane.showMessageDialog(Board.this, "You can perform another capture!", "Capture Opportunity", JOptionPane.INFORMATION_MESSAGE);
+                return; // Allow the player to continue their turn
+            } else {
+                // No further capture moves are possible
+                JOptionPane.showMessageDialog(Board.this, "No possible moves for this piece.", "No Moves", JOptionPane.INFORMATION_MESSAGE);
             }
-        }
     
-        // Special logic for kings to allow backward captures
-        if (movedPiece.isKing()) {
-            handleKingCapture(movedPiece, newPosition, boardArray);
+            // Deselect all pieces and switch the turn if no more captures are possible
+            deselectAllPieces();
+            // game.switchTurn();
         }
     }
     
-    private void handleKingCapture(Piece movedPiece, Point newPosition, Piece[][] boardArray) {
-        int newX = newPosition.x / GRID_SIZE;
-        int newY = newPosition.y / GRID_SIZE;
     
-        // Kings can move and capture in any direction
-        int[] deltaXOptions = {-2, 2};
-        int[] deltaYOptions = {-2, 2};
-    
-        for (int dx : deltaXOptions) {
-            for (int dy : deltaYOptions) {
-                int targetX = newX + dx;
-                int targetY = newY + dy;
-                
-                if (targetX >= 0 && targetX < 8 && targetY >= 0 && targetY < 8) {
-                    int captureX = newX + dx / 2;
-                    int captureY = newY + dy / 2;
-    
-                    Piece capturedPiece = boardArray[captureY][captureX];
-    
-                    if (capturedPiece != null && capturedPiece.getColor() != movedPiece.getColor()) {
-                        // Simulate player decision (yes or no)
-                        boolean playerWantsToCapture = getPlayerCaptureDecision(); // Placeholder for actual decision mechanism
-    
-                        if (playerWantsToCapture) {
-                            // Player decided to perform the capture
-                            System.out.println("King chose to capture!");
-    
-                            // Mark the captured piece as captured and remove it from the board
-                            capturedPiece.setCaptured(true);
-    
-                            // Remove the captured piece from the piece array and board array
-                            removePieceFromBoard(capturedPiece, captureX, captureY, boardArray);
-    
-                            // Force a full repaint after the piece is removed
-                            repaint();
-    
-                            // Log the remaining pieces
-                            System.out.println("Captured piece removed by king at: " + captureX + ", " + captureY);
-                        }
-                    }
-                }
-            }
-        }
-    }
-        
-    private void removePieceFromBoard(Piece piece, int x, int y, Piece[][] boardArray) {
-        // Remove the piece from the board array
-        boardArray[y][x] = null;
-    
-        // Remove the piece from the piece arrays
+
+    private void removePieceFromBoard(Piece piece) {
         if (piece.getColor() == Color.WHITE) {
             whitePieces = removePieceFromArray(whitePieces, piece);
-            System.out.println("White piece removed.");
         } else {
             blackPieces = removePieceFromArray(blackPieces, piece);
-            System.out.println("Black piece removed.");
+        }
+        repaint();
+    }
+
+    private Piece[] removePieceFromArray(Piece[] pieces, Piece pieceToRemove) {
+        return Arrays.stream(pieces).filter(piece -> piece != null && piece != pieceToRemove).toArray(Piece[]::new);
+    }
+
+    private List<Point> getCaptureMoves(Piece piece, Piece[][] boardArray) {
+        List<Point> captureMoves = new ArrayList<>();
+        
+        int[] dx = {-2, 2, -2, 2};  // Two square diagonal jumps
+        int[] dy = {-2, -2, 2, 2};  
+        
+        int oldX = piece.getPosition().x / GRID_SIZE;
+        int oldY = piece.getPosition().y / GRID_SIZE;
+        
+        for (int i = 0; i < dx.length; i++) {
+            int newX = oldX + dx[i];
+            int newY = oldY + dy[i];
+            
+            // Mid-point coordinates (opponent's piece position)
+            int midX = oldX + dx[i] / 2;
+            int midY = oldY + dy[i] / 2;
+            
+            // Check that both the new position and the mid-point (opponent's piece) are within board bounds (0-7)
+            if (newX >= 0 && newX < 8 && newY >= 0 && newY < 8 && midX >= 0 && midY < 8 && midX >= 0 && midY < 8) {
+                Piece opponentPiece = boardArray[midY][midX];
+                Piece landingSpot = boardArray[newY][newX];
+    
+                // Capture is possible if:
+                // 1. The mid-point (opponent's piece) is not null and is an opponent's piece.
+                // 2. The landing spot (new position) is empty.
+                if (opponentPiece != null && opponentPiece.getColor() != piece.getColor() && landingSpot == null) {
+                    Point newPosition = new Point(newX * GRID_SIZE + GRID_SIZE / 2, newY * GRID_SIZE + GRID_SIZE / 2);
+                    captureMoves.add(newPosition);
+                }
+            }
+        }
+        
+        return filterOutOfBoundsMoves(captureMoves);
+    }
+    
+    
+    
+
+    private void showPossibleMoves(Piece piece) {
+        Piece[][] boardArray = createBoardArray();
+    
+        // Get possible capture moves
+        possibleMoves = getCaptureMoves(piece, boardArray);
+    
+        // If no capture moves are available, get the regular possible moves
+        if (possibleMoves.isEmpty()) {
+            possibleMoves = filterOutOfBoundsMoves(piece.getPossibleMoves(boardArray));
         }
     
-        // Repaint the board to reflect the changes
-        repaint(x * GRID_SIZE, y * GRID_SIZE, GRID_SIZE, GRID_SIZE);
+        // Mark the piece as selected
+        piece.setSelected(true);
+    
+        // Repaint the board to show possible moves
+        repaint();
     }
     
-    private Piece[] removePieceFromArray(Piece[] pieces, Piece pieceToRemove) {
-        // Filter out the captured piece from the array
-        return Arrays.stream(pieces)
-                .filter(piece -> piece != null && piece != pieceToRemove) // Remove the specific piece
-                .toArray(Piece[]::new); // Convert the stream back to an array
+    
+    
+    private List<Point> filterOutOfBoundsMoves(List<Point> moves) {
+        List<Point> validMoves = new ArrayList<>();
+    
+        for (Point move : moves) {
+            int gridX = move.x / GRID_SIZE;
+            int gridY = move.y / GRID_SIZE;
+    
+            // Ensure that the move stays within the bounds of the board (0 to 7 for both x and y)
+            if (gridX >= 0 && gridX < 8 && gridY >= 0 && gridY < 8) {
+                validMoves.add(move);
+            }
+        }
+    
+        return validMoves;
     }
     
-    private boolean getPlayerCaptureDecision() {
-        // Simulate a player's decision to capture or not
-        return true; // Default to yes
-    }
+    
+
     private void checkForWinner() {
+        Piece[][] boardArray = createBoardArray();
         if (noPiecesLeft(whitePieces)) {
             showWinnerDialog(Color.BLACK);
         } else if (noPiecesLeft(blackPieces)) {
             showWinnerDialog(Color.WHITE);
-        } else if (noValidMovesLeft(whitePieces) && game.getCurrentTurnColor() == Color.WHITE) {
+        } else if (Arrays.stream(whitePieces).noneMatch(piece -> !piece.isCaptured() && !noValidMovesLeft(piece, boardArray)) && game.getCurrentTurnColor() == Color.WHITE) {
             showWinnerDialog(Color.BLACK);
-        } else if (noValidMovesLeft(blackPieces) && game.getCurrentTurnColor() == Color.BLACK) {
+        } else if (Arrays.stream(blackPieces).noneMatch(piece -> !piece.isCaptured() && !noValidMovesLeft(piece, boardArray)) && game.getCurrentTurnColor() == Color.BLACK) {
             showWinnerDialog(Color.WHITE);
         }
     }
+    
+    
+    
 
     private boolean noPiecesLeft(Piece[] pieces) {
         return Arrays.stream(pieces).allMatch(piece -> piece == null || piece.isCaptured());
     }
+    
 
-    private boolean noValidMovesLeft(Piece[] pieces) {
-        Piece[][] boardArray = createBoardArray();
-        return Arrays.stream(pieces)
-                     .filter(piece -> piece != null && !piece.isCaptured())
-                     .noneMatch(piece -> !piece.getPossibleMoves(boardArray).isEmpty());
+    private boolean noValidMovesLeft(Piece piece, Piece[][] boardArray) {
+        int currentX = piece.getPosition().x / GRID_SIZE;
+        int currentY = piece.getPosition().y / GRID_SIZE;
+    
+        // Check if the piece is on the left or right edge of the board
+        boolean isAtLeftEdge = currentX == 0;
+        boolean isAtRightEdge = currentX == 7;
+    
+        // Check if the piece is blocked on the left or right side by another piece
+        boolean isBlockedOnLeft = currentX > 0 && boardArray[currentY][currentX - 1] != null;
+        boolean isBlockedOnRight = currentX < 7 && boardArray[currentY][currentX + 1] != null;
+    
+        // Check if the piece has no valid moves left
+        boolean hasNoValidMoves = (isAtLeftEdge || isBlockedOnLeft) && (isAtRightEdge || isBlockedOnRight);
+    
+        return hasNoValidMoves;
     }
+    
+    
 
     private void showWinnerDialog(Color winningColor) {
+        gameOver = true; // Set game over to true to prevent further moves
         String winner = winningColor == Color.WHITE ? "White" : "Black";
         JOptionPane.showMessageDialog(this, winner + " wins!", "Game Over", JOptionPane.INFORMATION_MESSAGE);
-
+    
+        // Reset the game after the winner is displayed
         resetGame();
     }
 
     private void resetGame() {
         initializePieces();
         game.resetGame();
+        selectedPiece = null;
+        possibleMoves.clear();
+        gameOver = false; // Reset the game over flag
         repaint();
     }
 }
 
-    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
